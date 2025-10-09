@@ -19,3 +19,4 @@ class OSSelectionGUI:
     def confirm(self):
         self.selection = self.os_var.get()
         self.root.destroy()
+
