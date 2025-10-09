@@ -33,11 +33,9 @@ class FileSystemGUI:
         items = self.fs.list_items(self.current_path)
         for item in items:
             if isinstance(self.fs._get_folder(self.current_path + [item]), dict):
-                # Folder
-                self.tree.insert("", "end", text=item, open=True)
+                self.tree.insert("", "end", text=item, open=True)  # Folder
             else:
-                # File
-                self.tree.insert("", "end", text=item)
+                self.tree.insert("", "end", text=item)  # File
 
     def create_file(self):
         name = simpledialog.askstring("Create File", "Enter file name:")
@@ -55,7 +53,6 @@ class FileSystemGUI:
         selected = self.tree.selection()
         if selected:
             folder_name = self.tree.item(selected[0])["text"]
-            # Only open if it's a folder
             if isinstance(self.fs._get_folder(self.current_path + [folder_name]), dict):
                 self.current_path.append(folder_name)
                 self.refresh_tree()
