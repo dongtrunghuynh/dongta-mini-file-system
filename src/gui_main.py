@@ -33,7 +33,7 @@ class FileSystemGUI:
         items = self.fs.list_items(self.current_path)
         for item in items:
             if isinstance(self.fs._get_folder(self.current_path + [item]), dict):
-                self.tree.insert("", "end", text=item, open=True)  # Folder
+                self.tree.insert("", "end", text=f"[Folder] {item}")  # Folder
             else:
                 self.tree.insert("", "end", text=item)  # File
 
