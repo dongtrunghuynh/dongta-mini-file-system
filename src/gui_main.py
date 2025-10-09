@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
-from filesystem import InMemoryFileSystem
-from filesystem import Directory
+from filesystem import InMemoryFileSystem, Directory, File
 
 class FileSystemGUI:
     def __init__(self, user_os):
@@ -22,10 +21,8 @@ class FileSystemGUI:
 
         tk.Button(btn_frame, text="Create File", command=self.create_file).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_frame, text="Create Folder", command=self.create_folder).pack(side=tk.LEFT, padx=5)
-
         self.btn_go_up = tk.Button(btn_frame, text="Go Up", command=self.go_up)
         self.btn_go_up.pack(side=tk.LEFT, padx=5)
-
         tk.Button(btn_frame, text="Delete", command=self.delete_item).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_frame, text="Refresh", command=self.refresh_tree).pack(side=tk.LEFT, padx=5)
 
@@ -43,34 +40,77 @@ class FileSystemGUI:
                 self.tree.insert("", "end", text=f"[Folder] {item}", open=True)
             else:
                 self.tree.insert("", "end", text=item)
-
         self.btn_go_up.config(state=tk.DISABLED if not self.current_path else tk.NORMAL)
 
     def create_folder(self):
         name = simpledialog.askstring("Create Folder", "Enter folder name:")
-        if name:
-            success, msg = self.fs.mkdir(self.current_path + [name])
-            if not success:
-                messagebox.showerror("Error", msg)
-            self.refresh_tree()
+        if not name:
+            return
+
+        node = self.fs._get_node(self.current_path)
+        if node is None:
+            messagebox.showerror("Error", "Current folder does not exist.")
+            return
+
+        # Check if a file with the same name exists
+        if name in node.children and isinstance(node.children[name], File):
+            messagebox.showwarning(
+                "Cannot Create Folder",
+                f"A file with the name '{name}' already exists in this directory."
+            )
+            return
+
+        # Check if a folder with the same name exists
+        if name in node.children and isinstance(node.children[name], Directory):
+            messagebox.showwarning(
+                "Cannot Create Folder",
+                f"A folder with the name '{name}' already exists in this directory."
+            )
+            return
+
+        # Create the folder
+        success, msg = self.fs.mkdir(self.current_path + [name])
+        if not success:
+            messagebox.showerror("Error", msg)
+        else:
+            messagebox.showinfo("Success", f"Folder '{name}' created successfully.")
+
+        self.refresh_tree()
+
 
     def create_file(self):
         name = simpledialog.askstring("Create File", "Enter file name:")
-        if name:
-            # Check if a folder exists with the same name
-            node = self.fs._get_node(self.current_path)
-            if node and name in node.children and isinstance(node.children[name], Directory):
-                messagebox.showinfo(
-                    "Warning",
-                    f"A folder with the name '{name}' already exists in this directory."
-                )
+        if not name:
+            return
 
-            content = simpledialog.askstring("File Content", "Enter content for the file:")
-            success, msg = self.fs.create_file(self.current_path, name, content or "")
-            if not success:
-                messagebox.showerror("Error", msg)
-            self.refresh_tree()
+        node = self.fs._get_node(self.current_path)
+        if node is None:
+            messagebox.showerror("Error", "Current folder does not exist.")
+            return
 
+        # Prevent file creation if a folder with the same name exists
+        if name in node.children and isinstance(node.children[name], Directory):
+            messagebox.showwarning(
+                "Cannot Create File",
+                f"A folder with the name '{name}' already exists in this directory."
+            )
+            return
+
+        # Prevent file creation if a file with the same name exists
+        if name in node.children and isinstance(node.children[name], File):
+            messagebox.showwarning(
+                "Cannot Create File",
+                f"A file with the name '{name}' already exists in this directory."
+            )
+            return
+
+        content = simpledialog.askstring("File Content", "Enter content for the file:")
+        success, msg = self.fs.create_file(self.current_path, name, content or "")
+        if not success:
+            messagebox.showerror("Error", msg)
+        else:
+            messagebox.showinfo("Success", f"File '{name}' created successfully.")
+        self.refresh_tree()
 
     def open_folder(self, event):
         selected = self.tree.selection()
@@ -112,10 +152,14 @@ class FileSystemGUI:
             success, msg = self.fs.rmdir(self.current_path + [folder_name], recursive=True)
         else:
             file_name = text
+            confirm = messagebox.askyesno(
+                "Confirm Delete",
+                f"Are you sure you want to delete the file '{file_name}'?"
+            )
+            if not confirm:
+                return
             success, msg = self.fs.delete_file(self.current_path, file_name)
 
         if not success:
             messagebox.showerror("Error", msg)
         self.refresh_tree()
-
-
