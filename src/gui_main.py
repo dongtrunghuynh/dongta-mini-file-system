@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
 from filesystem import InMemoryFileSystem
+from filesystem import Directory
 
 class FileSystemGUI:
     def __init__(self, user_os):
@@ -81,14 +82,31 @@ class FileSystemGUI:
         if not selected:
             messagebox.showwarning("Warning", "No item selected")
             return
+
         text = self.tree.item(selected[0])["text"]
+
         if text.startswith("[Folder] "):
             folder_name = text.replace("[Folder] ", "")
+            node = self.fs._get_node(self.current_path + [folder_name])
+
+            # Check if folder is non-empty
+            if isinstance(node, Directory) and node.children:
+                confirm = messagebox.askyesno(
+                    "Confirm Delete",
+                    f"The folder '{folder_name}' is not empty.\n"
+                    "Deleting it will also delete all its contents.\n"
+                    "Do you want to proceed?"
+                )
+                if not confirm:
+                    return  # User cancelled deletion
+
             success, msg = self.fs.rmdir(self.current_path + [folder_name], recursive=True)
         else:
             file_name = text
             success, msg = self.fs.delete_file(self.current_path, file_name)
+
         if not success:
             messagebox.showerror("Error", msg)
         self.refresh_tree()
+
 
