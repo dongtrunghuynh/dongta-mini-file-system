@@ -57,11 +57,20 @@ class FileSystemGUI:
     def create_file(self):
         name = simpledialog.askstring("Create File", "Enter file name:")
         if name:
+            # Check if a folder exists with the same name
+            node = self.fs._get_node(self.current_path)
+            if node and name in node.children and isinstance(node.children[name], Directory):
+                messagebox.showinfo(
+                    "Warning",
+                    f"A folder with the name '{name}' already exists in this directory."
+                )
+
             content = simpledialog.askstring("File Content", "Enter content for the file:")
             success, msg = self.fs.create_file(self.current_path, name, content or "")
             if not success:
                 messagebox.showerror("Error", msg)
             self.refresh_tree()
+
 
     def open_folder(self, event):
         selected = self.tree.selection()
